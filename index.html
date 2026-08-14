@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Xanathar Guild Casino — Giant Slot Machine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --wood-dark:#2b1608;
+    --wood:#4a2a12;
+    --wood-light:#6b3d1c;
+    --gold:#d4af37;
+    --gold-bright:#f2d675;
+    --gold-dim:#8a6f28;
+    --felt:#0f2a1c;
+    --cream:#f4e3c1;
+    --green-on:#39ff6a;
+    --green-off:#0f3a1c;
+    --blue-on:#4fb3ff;
+    --blue-off:#0f2540;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a1f0f 0%, #150a04 70%),
+      #150a04;
+    font-family:'Georgia','Palatino Linotype',serif;
+    color:var(--cream);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 12px 60px;
+  }
+  h1{
+    font-family:'Copperplate','Trajan Pro',Georgia,serif;
+    letter-spacing:2px;
+    color:var(--gold-bright);
+    text-shadow:0 0 12px rgba(212,175,55,.5), 0 2px 0 #000;
+    font-size:clamp(20px,4vw,34px);
+    margin:6px 0 2px;
+    text-align:center;
+  }
+  .subtitle{
+    color:#c9a878;
+    font-style:italic;
+    font-size:14px;
+    margin-bottom:20px;
+    text-align:center;
+    max-width:600px;
+  }
+
+  .cabinet{
+    position:relative;
+    width:min(98vw,1200px);
+    background:
+      linear-gradient(180deg,var(--wood-light) 0%, var(--wood) 45%, var(--wood-dark) 100%);
+    border-radius:22px;
+    padding:22px 22px 30px;
+    box-shadow:
+      0 0 0 4px #1a0d04,
+      0 0 0 8px var(--gold-dim),
+      0 20px 50px rgba(0,0,0,.7),
+      inset 0 2px 10px rgba(255,255,255,.08);
+    border:2px solid #1a0d04;
+  }
+  .cabinet::before{
+    content:"";
+    position:absolute;
+    top:10px;left:10px;right:10px;bottom:10px;
+    border:2px solid var(--gold-dim);
+    border-radius:14px;
+    pointer-events:none;
+    opacity:.5;
+  }
+
+  .marquee{
+    text-align:center;
+    font-family:'Copperplate','Trajan Pro',Georgia,serif;
+    color:var(--gold-bright);
+    letter-spacing:3px;
+    font-size:clamp(16px,3vw,22px);
+    padding:8px 0 16px;
+    text-shadow:0 0 10px rgba(255,215,90,.6);
+  }
+
+  .machine-body{
+    display:flex;
+    gap:18px;
+    align-items:stretch;
+  }
+
+  .reels-panel{
+    flex:1;
+    background:linear-gradient(180deg,#0a0a0a,#1c1c1c);
+    border-radius:14px;
+    padding:16px 14px;
+    box-shadow:inset 0 0 24px rgba(0,0,0,.85), inset 0 0 0 3px #000;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .reels-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+  }
+
+  .reel{
+    width:100%;
+    aspect-ratio:1/1;
+    background:radial-gradient(circle at 35% 30%, #fdf6e3, #e9d9ad 55%, #c9ad6f 100%);
+    border-radius:10px;
+    border:4px solid #3a2610;
+    box-shadow:0 4px 0 #000, inset 0 0 12px rgba(0,0,0,.35);
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:box-shadow .2s;
+  }
+  .reel.spinning{
+    box-shadow:0 4px 0 #000, inset 0 0 12px rgba(0,0,0,.35), 0 0 18px 2px rgba(255,215,90,.55);
+  }
+  .reel.locked{
+    box-shadow:0 4px 0 #000, inset 0 0 12px rgba(0,0,0,.35), 0 0 0 3px var(--gold-bright), 0 0 14px 2px rgba(242,214,117,.7);
+  }
+  .reel .symbol{
+    position:relative;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .reel .icon{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+  }
+  .reel svg{ width:92%; height:92%; }
+  .reel .label{
+    /* label moved to the caption row below the reel; kept off-screen for accessibility */
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+  }
+  .reel-number{
+    text-align:center;
+    color:var(--gold-bright);
+    font-size:clamp(11px,1.8vw,14px);
+    font-weight:bold;
+    letter-spacing:.5px;
+  }
+  .reel-number .num{
+    color:var(--gold-dim);
+    font-size:10px;
+    letter-spacing:2px;
+    display:block;
+    margin-bottom:2px;
+  }
+  .reel-numbers-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+  }
+
+  .lights-panel{
+    width:64px;
+    background:linear-gradient(180deg,#0a0a0a,#1c1c1c);
+    border-radius:14px;
+    padding:14px 8px;
+    box-shadow:inset 0 0 24px rgba(0,0,0,.85), inset 0 0 0 3px #000;
+    display:flex;
+    flex-direction:column-reverse;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+  }
+  .light{
+    width:34px;height:34px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #222, #050505 70%);
+    box-shadow:inset 0 0 6px rgba(0,0,0,.9), 0 0 0 3px #000;
+    transition:all .35s ease;
+  }
+  .light.green{
+    background:radial-gradient(circle at 35% 30%, #baffc9, var(--green-on) 45%, #0d6b2c 100%);
+    box-shadow:0 0 16px 4px rgba(57,255,106,.85), inset 0 0 6px rgba(0,0,0,.4), 0 0 0 3px #000;
+  }
+  .light.blue{
+    background:radial-gradient(circle at 35% 30%, #cfeaff, var(--blue-on) 45%, #0b4a7a 100%);
+    box-shadow:0 0 16px 4px rgba(79,179,255,.85), inset 0 0 6px rgba(0,0,0,.4), 0 0 0 3px #000;
+  }
+
+  .lever-area{
+    width:70px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .lever-track{
+    position:relative;
+    width:16px;
+    height:190px;
+    background:linear-gradient(90deg,#0a0a0a,#2a2a2a,#0a0a0a);
+    border-radius:10px;
+    box-shadow:inset 0 0 6px rgba(0,0,0,.9);
+  }
+  .lever-handle-wrap{
+    position:absolute;
+    left:50%;
+    top:0;
+    transform:translateX(-50%);
+    transition:top .35s cubic-bezier(.2,.9,.3,1.2);
+    cursor:pointer;
+    user-select:none;
+  }
+  .lever-handle-wrap.locked{ cursor:not-allowed; opacity:.55; }
+  .lever-ball{
+    width:34px;height:34px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ff8b6b, #b3271a 60%, #6b120a 100%);
+    box-shadow:0 3px 0 #3a0a04, 0 0 8px rgba(0,0,0,.6);
+    margin:0 auto;
+  }
+  .lever-stick{
+    width:8px;
+    height:60px;
+    margin:0 auto;
+    background:linear-gradient(90deg,#8a8a8a,#e8e8e8,#8a8a8a);
+    border-radius:4px;
+  }
+
+  .controls-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    align-items:center;
+    margin-top:22px;
+  }
+
+  .coin-slot{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(180deg,#1c1c1c,#0a0a0a);
+    padding:10px 16px;
+    border-radius:10px;
+    box-shadow:inset 0 0 10px rgba(0,0,0,.8), 0 0 0 2px #000;
+  }
+  .coin-slot .slit{
+    width:34px;height:10px;
+    background:#000;
+    border-radius:5px;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.9), 0 0 0 2px #3a2610;
+  }
+
+  button.btn{
+    font-family:Georgia,serif;
+    font-weight:bold;
+    letter-spacing:.5px;
+    padding:10px 18px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold) 55%,var(--gold-dim));
+    color:#2b1608;
+    box-shadow:0 3px 0 #6b5218, 0 6px 10px rgba(0,0,0,.4);
+    transition:transform .08s, box-shadow .08s;
+  }
+  button.btn:hover:not(:disabled){ filter:brightness(1.06); }
+  button.btn:active:not(:disabled){ transform:translateY(2px); box-shadow:0 1px 0 #6b5218; }
+  button.btn:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+    filter:grayscale(.4);
+  }
+  button.btn.secondary{
+    background:linear-gradient(180deg,#5a5a5a,#333);
+    color:#eee;
+    box-shadow:0 3px 0 #111, 0 6px 10px rgba(0,0,0,.4);
+  }
+
+  .status{
+    margin-top:16px;
+    min-height:48px;
+    text-align:center;
+    font-size:15px;
+    color:var(--cream);
+    max-width:640px;
+    line-height:1.5;
+  }
+  .status .flavor{
+    color:#d9c396;
+    font-style:italic;
+  }
+
+  .gp-counter{
+    font-size:13px;
+    color:var(--gold-bright);
+    letter-spacing:.5px;
+  }
+
+  .legend{
+    margin-top:22px;
+    background:rgba(20,10,4,.65);
+    border:1px solid var(--gold-dim);
+    border-radius:10px;
+    padding:12px 18px;
+    max-width:640px;
+    font-size:13px;
+    color:#cbb789;
+    line-height:1.6;
+  }
+  .legend b{ color:var(--gold-bright); }
+  .legend .dot{
+    display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle;
+  }
+  .dot.g{ background:var(--green-on); box-shadow:0 0 6px var(--green-on); }
+  .dot.b{ background:var(--blue-on); box-shadow:0 0 6px var(--blue-on); }
+  .dot.d{ background:#333; }
+
+  .jackpot-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.75);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    flex-direction:column;
+    text-align:center;
+    padding:20px;
+  }
+  .jackpot-overlay.show{ display:flex; }
+  .jackpot-overlay h2{
+    font-size:clamp(28px,6vw,52px);
+    color:var(--gold-bright);
+    text-shadow:0 0 30px rgba(255,215,90,.9);
+    margin:0 0 10px;
+    animation:pulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes pulse{ from{ transform:scale(1);} to{ transform:scale(1.06);} }
+  .jackpot-overlay p{ color:var(--cream); max-width:520px; font-size:16px; line-height:1.6; }
+
+  .coin{
+    position:fixed;
+    top:-20px;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff2b0, var(--gold) 55%, #8a6f28);
+    box-shadow:0 0 6px rgba(255,215,90,.8);
+    z-index:60;
+    pointer-events:none;
+  }
+
+  .reset-hint{
+    font-size:12px;
+    color:#8a7451;
+    margin-top:6px;
+  }
+
+  /* ---------- reel motion: tick blur + settle bounce ---------- */
+  @keyframes reelTick{
+    0%{ transform:translateY(-8px) scale(1.02); opacity:.35; filter:blur(3px); }
+    100%{ transform:translateY(0) scale(1); opacity:1; filter:blur(0); }
+  }
+  .reel .symbol.ticking{ animation:reelTick .22s ease-out; }
+  @keyframes reelSettle{
+    0%{ transform:translateY(-14px) scale(1.06); }
+    35%{ transform:translateY(6px) scale(.97); }
+    60%{ transform:translateY(-3px) scale(1.015); }
+    80%{ transform:translateY(1px) scale(.995); }
+    100%{ transform:translateY(0) scale(1); }
+  }
+  .reel.settling .symbol{ animation:reelSettle .5s cubic-bezier(.25,.7,.3,1); }
+
+  /* ---------- attempt history ---------- */
+  .history-panel{
+    margin-top:22px;
+    background:rgba(20,10,4,.65);
+    border:1px solid var(--gold-dim);
+    border-radius:10px;
+    padding:14px 18px;
+    width:min(94vw,760px);
+    font-size:13px;
+    color:#cbb789;
+  }
+  .history-panel h3{
+    margin:0 0 10px;
+    color:var(--gold-bright);
+    font-size:14px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .history-empty{ color:#8a7451; font-style:italic; }
+  .history-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:6px 0;
+    border-top:1px solid rgba(212,175,55,.15);
+  }
+  .history-row:first-child{ border-top:none; }
+  .history-num{
+    width:20px;
+    color:var(--gold-dim);
+    font-weight:bold;
+    text-align:right;
+  }
+  .history-icons{ display:flex; gap:6px; }
+  .history-icons .mini{
+    width:30px;height:30px;
+    background:radial-gradient(circle at 35% 30%, #fdf6e3, #e9d9ad 55%, #c9ad6f 100%);
+    border-radius:5px;
+    border:2px solid #3a2610;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .history-icons .mini svg{ width:75%; height:75%; }
+  .history-dots{ display:flex; gap:4px; margin-left:auto; }
+  .history-dots .d{
+    width:11px;height:11px;border-radius:50%;
+    background:#222; box-shadow:inset 0 0 3px rgba(0,0,0,.8);
+  }
+  .history-dots .d.green{ background:var(--green-on); box-shadow:0 0 5px var(--green-on); }
+  .history-dots .d.blue{ background:var(--blue-on); box-shadow:0 0 5px var(--blue-on); }
+  .history-win{ color:var(--gold-bright); font-weight:bold; margin-left:auto; }
+
+  /* ---------- DM tools ---------- */
+  .dm-toggle{
+    position:fixed;
+    left:16px; bottom:16px;
+    z-index:40;
+    font-size:12px;
+    padding:8px 14px;
+    border-radius:20px;
+    background:linear-gradient(180deg,#3a3a3a,#1a1a1a);
+    color:#cbb789;
+    border:1px solid var(--gold-dim);
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,.5);
+  }
+  .dm-panel{
+    position:fixed;
+    left:16px; bottom:60px;
+    z-index:40;
+    width:min(86vw,300px);
+    background:linear-gradient(180deg,#1c1006,#0d0703);
+    border:1px solid var(--gold-dim);
+    border-radius:12px;
+    padding:14px 16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.6);
+    display:none;
+  }
+  .dm-panel.open{ display:block; }
+  .dm-panel h4{
+    margin:0 0 10px; color:var(--gold-bright); font-size:13px; letter-spacing:1px; text-transform:uppercase;
+  }
+  .dm-row{ margin-bottom:10px; }
+  .dm-secret{
+    font-size:13px; color:#8a7451; font-style:italic; margin-top:4px;
+  }
+  .dm-secret.shown{ color:var(--green-on); font-style:normal; }
+  .dm-panel label{
+    display:flex; align-items:center; gap:8px; font-size:12.5px; color:#cbb789; cursor:pointer;
+  }
+  .dm-panel button.btn{ font-size:12px; padding:7px 12px; width:100%; }
+
+  @media (max-width:520px){
+    .lever-area{ width:52px; }
+    .lights-panel{ width:50px; }
+    .light{ width:26px;height:26px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⚜ The Xanathar Guild Casino ⚜</h1>
+<p class="subtitle">A giant gnomish slot machine dominates the room. Four reels. Four lights. A dead body slumps at its base.</p>
+
+<div class="cabinet">
+  <div class="marquee">✦ Beholder&nbsp;·&nbsp;Illithid&nbsp;·&nbsp;Nothic&nbsp;·&nbsp;Roper&nbsp;·&nbsp;Rust Monster ✦</div>
+
+  <div class="machine-body">
+    <div class="reels-panel">
+      <div class="reels-row" id="reelsRow"></div>
+      <div class="reel-numbers-row" id="reelNumbers">
+        <div class="reel-number"><span class="num">I</span><span class="name" id="reelName0"></span></div>
+        <div class="reel-number"><span class="num">II</span><span class="name" id="reelName1"></span></div>
+        <div class="reel-number"><span class="num">III</span><span class="name" id="reelName2"></span></div>
+        <div class="reel-number"><span class="num">IV</span><span class="name" id="reelName3"></span></div>
+      </div>
+    </div>
+
+    <div class="lights-panel" id="lightsPanel">
+      <div class="light" id="light1"></div>
+      <div class="light" id="light2"></div>
+      <div class="light" id="light3"></div>
+      <div class="light" id="light4"></div>
+    </div>
+
+    <div class="lever-area">
+      <div class="lever-track">
+        <div class="lever-handle-wrap" id="leverHandle">
+          <div class="lever-ball"></div>
+          <div class="lever-stick"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="coin-slot">
+      <div class="slit"></div>
+      <button class="btn" id="insertBtn">Insert 20 gp</button>
+    </div>
+    <button class="btn secondary" id="soundBtn">🔊 Sound: On</button>
+  </div>
+
+  <div class="status" id="status">
+    <span class="flavor">A message on the base reads: "20 gp or 2 pp to play."</span>
+  </div>
+  <div class="gp-counter" id="gpCounter">Gold spent so far: 0 gp</div>
+</div>
+
+<div class="history-panel">
+  <h3>Attempt History</h3>
+  <div id="historyList"><div class="history-empty">No attempts yet — insert coins and pull the lever to begin.</div></div>
+</div>
+
+<div class="legend" id="legendBox">
+  <b>How it works:</b> Drop in 20 gp to unlock the lever. Each reel spins continuously through five symbols —
+  <b>pull the lever to lock the leftmost unlocked reel wherever it currently sits</b>, then the next reel starts
+  spinning. Once all four are locked, the machine reads the lights from the bottom up:
+  <br><br>
+  <span class="dot g"></span><b>Green</b> — one of your locked symbols is the right creature <i>in the right position</i>.<br>
+  <span class="dot b"></span><b>Blue</b> — one of your locked symbols is the right creature, but <i>in the wrong position</i>.<br>
+  <span class="dot d"></span><b>Dark</b> — no match for that light.
+  <br><br>
+  Get it exactly right, and the machine pays out — and something in the floor shifts open.
+</div>
+
+<div class="jackpot-overlay" id="jackpotOverlay">
+  <h2 id="jackpotTitle">JACKPOT!</h2>
+  <p id="jackpotText"></p>
+  <button class="btn" id="jackpotClose" style="margin-top:18px;">Continue</button>
+</div>
+
+<button class="dm-toggle" id="dmToggle">⚙ DM Tools</button>
+<div class="dm-panel" id="dmPanel">
+  <h4>DM Tools</h4>
+  <div class="dm-row">
+    <button class="btn secondary" id="dmRevealBtn">Reveal Solution</button>
+    <div class="dm-secret" id="dmSecretText">•••• , •••• , •••• , ••••</div>
+  </div>
+  <div class="dm-row">
+    <label><input type="checkbox" id="dmFreePlay"> Free play (skip 20 gp cost)</label>
+  </div>
+  <div class="dm-row">
+    <label><input type="checkbox" id="dmHideLegend"> Hide "How it Works" box</label>
+  </div>
+  <div class="dm-row" style="margin-bottom:0;">
+    <button class="btn secondary" id="dmResetBtn">Reset Entire Puzzle</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Creature icons (simple inline SVG, flat style) ----------
+  const ICONS = {
+    "Beholder": `<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="30" fill="#a5473d" stroke="#3a1108" stroke-width="3"/><circle cx="50" cy="52" r="14" fill="#f2e6c9" stroke="#3a1108" stroke-width="2"/><circle cx="50" cy="52" r="6" fill="#1a1006"/>
+      <line x1="26" y1="30" x2="14" y2="12" stroke="#a5473d" stroke-width="6" stroke-linecap="round"/><circle cx="14" cy="12" r="5" fill="#f2e6c9" stroke="#3a1108" stroke-width="1.5"/>
+      <line x1="38" y1="22" x2="30" y2="4" stroke="#a5473d" stroke-width="6" stroke-linecap="round"/><circle cx="30" cy="4" r="5" fill="#f2e6c9" stroke="#3a1108" stroke-width="1.5"/>
+      <line x1="62" y1="22" x2="70" y2="4" stroke="#a5473d" stroke-width="6" stroke-linecap="round"/><circle cx="70" cy="4" r="5" fill="#f2e6c9" stroke="#3a1108" stroke-width="1.5"/>
+      <line x1="74" y1="30" x2="86" y2="12" stroke="#a5473d" stroke-width="6" stroke-linecap="round"/><circle cx="86" cy="12" r="5" fill="#f2e6c9" stroke="#3a1108" stroke-width="1.5"/>
+      <path d="M28 76 L34 92 L40 76 L46 92 L52 76 L58 92 L64 76 L70 92 L74 76" fill="none" stroke="#3a1108" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    "Illithid": `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="42" rx="26" ry="30" fill="#6c4b8c" stroke="#2a1840" stroke-width="3"/>
+      <path d="M32 60 Q26 78 16 92" fill="none" stroke="#6c4b8c" stroke-width="7" stroke-linecap="round"/>
+      <path d="M42 66 Q40 84 34 96" fill="none" stroke="#6c4b8c" stroke-width="7" stroke-linecap="round"/>
+      <path d="M58 66 Q60 84 66 96" fill="none" stroke="#6c4b8c" stroke-width="7" stroke-linecap="round"/>
+      <path d="M68 60 Q74 78 84 92" fill="none" stroke="#6c4b8c" stroke-width="7" stroke-linecap="round"/>
+      <ellipse cx="39" cy="38" rx="7" ry="9" fill="#e8dcff"/><ellipse cx="61" cy="38" rx="7" ry="9" fill="#e8dcff"/>
+      <circle cx="39" cy="39" r="3" fill="#1a0f2a"/><circle cx="61" cy="39" r="3" fill="#1a0f2a"/></svg>`,
+    "Nothic": `<svg viewBox="0 0 100 100"><path d="M50 14 C74 14 84 36 80 58 C76 82 60 92 50 92 C40 92 24 82 20 58 C16 36 26 14 50 14 Z" fill="#8a9b6e" stroke="#2e3a1e" stroke-width="3"/>
+      <circle cx="50" cy="46" r="16" fill="#f2e6c9" stroke="#2e3a1e" stroke-width="2.5"/>
+      <circle cx="50" cy="46" r="7" fill="#c9942e"/><circle cx="50" cy="46" r="3" fill="#1a1006"/>
+      <path d="M30 70 Q50 84 70 70" fill="none" stroke="#2e3a1e" stroke-width="3" stroke-linecap="round"/>
+      <path d="M38 20 Q50 10 62 20" fill="none" stroke="#2e3a1e" stroke-width="3" stroke-linecap="round"/></svg>`,
+    "Roper": `<svg viewBox="0 0 100 100"><path d="M50 10 C64 30 68 55 62 78 C58 92 42 92 38 78 C32 55 36 30 50 10 Z" fill="#4a6b47" stroke="#1f3a1c" stroke-width="3"/>
+      <path d="M40 40 Q28 34 22 22" fill="none" stroke="#4a6b47" stroke-width="6" stroke-linecap="round"/>
+      <path d="M60 40 Q72 34 78 22" fill="none" stroke="#4a6b47" stroke-width="6" stroke-linecap="round"/>
+      <path d="M38 55 Q26 54 18 46" fill="none" stroke="#4a6b47" stroke-width="6" stroke-linecap="round"/>
+      <path d="M62 55 Q74 54 82 46" fill="none" stroke="#4a6b47" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="44" cy="30" r="3.5" fill="#1a1006"/><circle cx="56" cy="30" r="3.5" fill="#1a1006"/></svg>`,
+    "Rust Monster": `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="34" ry="24" fill="#8a5a2e" stroke="#3a2410" stroke-width="3"/>
+      <ellipse cx="50" cy="34" rx="20" ry="18" fill="#8a5a2e" stroke="#3a2410" stroke-width="3"/>
+      <path d="M40 20 Q34 4 26 2" fill="none" stroke="#c98a3a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M60 20 Q66 4 74 2" fill="none" stroke="#c98a3a" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="42" cy="32" r="3" fill="#1a1006"/><circle cx="58" cy="32" r="3" fill="#1a1006"/>
+      <path d="M18 62 Q10 62 6 70" fill="none" stroke="#3a2410" stroke-width="4" stroke-linecap="round"/>
+      <path d="M82 62 Q90 62 94 70" fill="none" stroke="#3a2410" stroke-width="4" stroke-linecap="round"/></svg>`
+  };
+
+  const SYMBOLS = ["Beholder","Illithid","Nothic","Roper","Rust Monster"];
+
+  // ---------- Secret answer (lightly obfuscated so it isn't plainly readable in view-source) ----------
+  // Decodes to: Beholder, Roper, Rust Monster, Illithid
+  const _s = [66,101,104,111,108,100,101,114,124,82,111,112,101,114,124,82,117,115,116,32,77,111,110,115,116,101,114,124,73,108,108,105,116,104,105,100]
+    .map(c => String.fromCharCode(c)).join("").split("|");
+  const SECRET = _s; // ["Beholder","Roper","Rust Monster","Illithid"]
+  const PASSWORD = ["Beholder","Beholder","Beholder","Beholder"];
+
+  // ---------- State ----------
+  let reels = [0,0,0,0].map(()=> Math.floor(Math.random()*SYMBOLS.length)); // current displayed index per reel
+  let locked = [false,false,false,false];
+  let spinTimers = [null,null,null,null];
+  let coinsInserted = false;
+  let totalSpent = 0;
+  let activeReel = 0; // next reel to lock
+  let soundOn = true;
+  let roundOver = false;
+  let history = [];
+  let freePlay = false;
+  let secretRevealed = false;
+
+  // ---------- Audio (Web Audio API, no external files) ----------
+  let actx = null;
+  function ctx(){
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }
+  function tone(freq, dur, type, gainPeak, delay){
+    if (!soundOn) return;
+    try{
+      const a = ctx();
+      const t0 = a.currentTime + (delay||0);
+      const osc = a.createOscillator();
+      const gain = a.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(gainPeak || 0.2, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(a.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }catch(e){ /* ignore audio errors */ }
+  }
+  function sfxCoin(){ tone(1400,0.09,"square",0.12,0); tone(1900,0.09,"square",0.1,0.06); }
+  function sfxLever(){ tone(90,0.25,"sawtooth",0.25,0); }
+  function sfxTick(){ tone(600,0.03,"square",0.05,0); }
+  function sfxLock(){ tone(300,0.12,"triangle",0.18,0); tone(500,0.1,"triangle",0.14,0.05); }
+  function sfxGreen(){ tone(880,0.12,"sine",0.18,0); }
+  function sfxBlue(){ tone(520,0.12,"sine",0.16,0); }
+  function sfxJackpot(){
+    [0,0.12,0.24,0.36,0.5].forEach((d,i)=> tone(523.25*Math.pow(1.5,i),0.3,"triangle",0.2,d));
+  }
+  function sfxFail(){ tone(180,0.3,"sawtooth",0.15,0); tone(140,0.35,"sawtooth",0.12,0.1); }
+
+  // ---------- DOM refs ----------
+  const reelsRow = document.getElementById("reelsRow");
+  const statusEl = document.getElementById("status");
+  const gpCounterEl = document.getElementById("gpCounter");
+  const insertBtn = document.getElementById("insertBtn");
+  const leverHandle = document.getElementById("leverHandle");
+  const soundBtn = document.getElementById("soundBtn");
+  const jackpotOverlay = document.getElementById("jackpotOverlay");
+  const jackpotTitle = document.getElementById("jackpotTitle");
+  const jackpotText = document.getElementById("jackpotText");
+  const jackpotClose = document.getElementById("jackpotClose");
+
+  const reelEls = [];
+  for (let i=0;i<4;i++){
+    const div = document.createElement("div");
+    div.className = "reel";
+    div.id = "reel"+i;
+    div.innerHTML = `<div class="symbol"><span class="icon"></span><span class="label"></span></div>`;
+    reelsRow.appendChild(div);
+    reelEls.push(div);
+  }
+
+  function renderReel(i, animateTick){
+    const sym = SYMBOLS[reels[i]];
+    const el = reelEls[i];
+    el.querySelector(".icon").innerHTML = ICONS[sym];
+    el.querySelector(".label").textContent = sym;
+    const nameEl = document.getElementById("reelName"+i);
+    if (nameEl) nameEl.textContent = sym;
+    el.classList.toggle("spinning", !locked[i] && coinsInserted && !roundOver);
+    el.classList.toggle("locked", locked[i]);
+    if (animateTick){
+      const symbolEl = el.querySelector(".symbol");
+      symbolEl.classList.remove("ticking");
+      // force reflow so the animation restarts every tick
+      void symbolEl.offsetWidth;
+      symbolEl.classList.add("ticking");
+    }
+  }
+  for (let i=0;i<4;i++) renderReel(i, false);
+
+  function setStatus(html){ statusEl.innerHTML = html; }
+
+  function updateGpCounter(){
+    gpCounterEl.textContent = "Gold spent so far: " + totalSpent + " gp";
+  }
+
+  function startSpinning(i){
+    stopSpinning(i);
+    spinTimers[i] = setInterval(()=>{
+      reels[i] = (reels[i] + 1) % SYMBOLS.length;
+      renderReel(i, true);
+      sfxTick();
+    }, 850);
+  }
+  function stopSpinning(i){
+    if (spinTimers[i]){ clearInterval(spinTimers[i]); spinTimers[i] = null; }
+  }
+
+  function resetLights(){
+    for (let i=1;i<=4;i++){
+      const l = document.getElementById("light"+i);
+      l.classList.remove("green","blue");
+    }
+  }
+
+  function resetMachine(freshMessage){
+    for (let i=0;i<4;i++){ stopSpinning(i); locked[i]=false; }
+    reels = reels.map(()=> Math.floor(Math.random()*SYMBOLS.length));
+    activeReel = 0;
+    coinsInserted = false;
+    roundOver = false;
+    resetLights();
+    for (let i=0;i<4;i++) renderReel(i);
+    leverHandle.classList.add("locked");
+    insertBtn.disabled = false;
+    if (freshMessage) setStatus(freshMessage);
+  }
+
+  insertBtn.addEventListener("click", ()=>{
+    if (coinsInserted) return;
+    if (!freePlay){ totalSpent += 20; updateGpCounter(); }
+    sfxCoin();
+    coinsInserted = true;
+    roundOver = false;
+    insertBtn.disabled = true;
+    leverHandle.classList.remove("locked");
+    activeReel = 0;
+    for (let i=0;i<4;i++){ locked[i]=false; }
+    resetLights();
+    startSpinning(0);
+    renderReel(0);
+    setStatus('<span class="flavor">Coins clatter into the machine. The lever unlocks, the lights go dim, and the leftmost reel begins to turn...</span>');
+  });
+
+  function pullLever(){
+    if (!coinsInserted || roundOver) return;
+    if (activeReel > 3) return;
+
+    // lever pull animation
+    leverHandle.style.top = "150px";
+    sfxLever();
+    setTimeout(()=>{ leverHandle.style.top = "0px"; }, 260);
+
+    const i = activeReel;
+    stopSpinning(i);
+    locked[i] = true;
+    renderReel(i);
+    reelEls[i].classList.add("settling");
+    setTimeout(()=> reelEls[i].classList.remove("settling"), 520);
+    setTimeout(()=> sfxLock(), 420); // click lands as the reel finishes settling
+    activeReel++;
+
+    if (activeReel <= 3){
+      startSpinning(activeReel);
+      renderReel(activeReel);
+      setStatus(`<span class="flavor">The reel decelerates and settles on <b>${SYMBOLS[reels[i]]}</b> with a mechanical click. The next reel begins to spin...</span>`);
+    } else {
+      // all four locked -- evaluate (after the settle animation finishes)
+      setTimeout(evaluate, 520);
+    }
+  }
+
+  leverHandle.addEventListener("click", pullLever);
+  leverHandle.addEventListener("keydown", (e)=>{ if (e.key === "Enter" || e.key === " ") pullLever(); });
+  leverHandle.setAttribute("tabindex","0");
+  leverHandle.setAttribute("role","button");
+  leverHandle.setAttribute("aria-label","Pull lever");
+
+  function mastermindFeedback(guess, secret){
+    let green = 0;
+    const secretRemain = [];
+    const guessRemain = [];
+    for (let i=0;i<4;i++){
+      if (guess[i] === secret[i]) green++;
+      else { secretRemain.push(secret[i]); guessRemain.push(guess[i]); }
+    }
+    let blue = 0;
+    const used = new Array(secretRemain.length).fill(false);
+    for (const g of guessRemain){
+      const idx = secretRemain.findIndex((s,k)=> !used[k] && s === g);
+      if (idx !== -1){ used[idx] = true; blue++; }
+    }
+    return {green, blue};
+  }
+
+  function arraysEqual(a,b){ return a.length===b.length && a.every((v,i)=> v===b[i]); }
+
+  function evaluate(){
+    roundOver = true;
+    const guess = reels.map(i => SYMBOLS[i]);
+    const isWin = arraysEqual(guess, SECRET) || arraysEqual(guess, PASSWORD);
+
+    if (isWin){
+      history.push({guess, green:4, blue:0, win:true});
+      renderHistory();
+      lightUp(4,0, true);
+      sfxJackpot();
+      spawnCoins();
+      setTimeout(()=>{
+        jackpotTitle.textContent = "JACKPOT!";
+        jackpotText.innerHTML = "The machine shudders, spits out a shower of gold pieces, and grinds to a halt.<br><br>With a rumble, a section of the floor slides open — revealing a staircase leading down.";
+        jackpotOverlay.classList.add("show");
+      }, 500);
+      setStatus('<span class="flavor">All four lights blaze <b>green</b>. Gears clank. The machine has accepted your answer!</span>');
+      leverHandle.classList.add("locked");
+      insertBtn.disabled = true;
+      return;
+    }
+
+    const {green, blue} = mastermindFeedback(guess, SECRET);
+    history.push({guess, green, blue, win:false});
+    renderHistory();
+    lightUp(green, blue, false);
+    if (green===0 && blue===0) sfxFail();
+
+    setStatus(
+      `<span class="flavor">The lever jams. ${green} light${green===1?"":"s"} glow <b style="color:#39ff6a">green</b>, ` +
+      `${blue} light${blue===1?"":"s"} glow <b style="color:#4fb3ff">blue</b>` +
+      `${(green+blue)<4 ? ", and the rest stay dark." : "."}` +
+      ` The machine needs more coin before it will try again.</span>`
+    );
+
+    leverHandle.classList.add("locked");
+    insertBtn.disabled = false;
+    coinsInserted = false;
+  }
+
+  function renderHistory(){
+    const list = document.getElementById("historyList");
+    if (!history.length){
+      list.innerHTML = '<div class="history-empty">No attempts yet — insert coins and pull the lever to begin.</div>';
+      return;
+    }
+    list.innerHTML = history.map((h, idx)=>{
+      const icons = h.guess.map(sym => `<div class="mini">${ICONS[sym]}</div>`).join("");
+      let dots = "";
+      for (let i=0;i<h.green;i++) dots += '<div class="d green"></div>';
+      for (let i=0;i<h.blue;i++) dots += '<div class="d blue"></div>';
+      for (let i=0;i<(4-h.green-h.blue);i++) dots += '<div class="d"></div>';
+      const rightSide = h.win ? `<div class="history-win">JACKPOT ✦</div>` : `<div class="history-dots">${dots}</div>`;
+      return `<div class="history-row"><div class="history-num">${idx+1}</div><div class="history-icons">${icons}</div>${rightSide}</div>`;
+    }).join("");
+  }
+
+  function lightUp(greenCount, blueCount, isWin){
+    // lights fill bottom-up: greens first, then blues, rest dark
+    const order = [1,2,3,4]; // light1 is bottom-most due to column-reverse layout
+    let idx = 0;
+    for (let g=0; g<greenCount; g++){
+      const l = document.getElementById("light"+order[idx]);
+      setTimeout(()=>{ l.classList.add("green"); sfxGreen(); }, idx*180);
+      idx++;
+    }
+    for (let b=0; b<blueCount; b++){
+      const l = document.getElementById("light"+order[idx]);
+      setTimeout(()=>{ l.classList.add("blue"); sfxBlue(); }, idx*180);
+      idx++;
+    }
+  }
+
+  function spawnCoins(){
+    for (let i=0;i<26;i++){
+      setTimeout(()=>{
+        const c = document.createElement("div");
+        c.className = "coin";
+        c.style.left = (10 + Math.random()*80) + "vw";
+        c.style.animation = `fall ${1.1 + Math.random()*0.8}s cubic-bezier(.4,0,.6,1) forwards`;
+        document.body.appendChild(c);
+        setTimeout(()=> c.remove(), 2200);
+      }, i*40);
+    }
+  }
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = `@keyframes fall{ to{ top:105vh; transform:rotate(360deg);} }`;
+  document.head.appendChild(styleSheet);
+
+  jackpotClose.addEventListener("click", ()=>{
+    jackpotOverlay.classList.remove("show");
+  });
+
+  soundBtn.addEventListener("click", ()=>{
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? "🔊 Sound: On" : "🔇 Sound: Off";
+  });
+
+  // ---------- DM Tools ----------
+  const dmToggle = document.getElementById("dmToggle");
+  const dmPanel = document.getElementById("dmPanel");
+  const dmRevealBtn = document.getElementById("dmRevealBtn");
+  const dmSecretText = document.getElementById("dmSecretText");
+  const dmFreePlay = document.getElementById("dmFreePlay");
+  const dmHideLegend = document.getElementById("dmHideLegend");
+  const dmResetBtn = document.getElementById("dmResetBtn");
+  const legendBox = document.getElementById("legendBox");
+
+  dmHideLegend.addEventListener("change", ()=>{
+    legendBox.style.display = dmHideLegend.checked ? "none" : "";
+  });
+
+  dmToggle.addEventListener("click", ()=>{
+    dmPanel.classList.toggle("open");
+  });
+
+  dmRevealBtn.addEventListener("click", ()=>{
+    secretRevealed = !secretRevealed;
+    if (secretRevealed){
+      dmSecretText.textContent = SECRET.join(" → ") + "   (password: " + PASSWORD.join(", ") + ")";
+      dmSecretText.classList.add("shown");
+      dmRevealBtn.textContent = "Hide Solution";
+    } else {
+      dmSecretText.textContent = "•••• , •••• , •••• , ••••";
+      dmSecretText.classList.remove("shown");
+      dmRevealBtn.textContent = "Reveal Solution";
+    }
+  });
+
+  dmFreePlay.addEventListener("change", ()=>{
+    freePlay = dmFreePlay.checked;
+    insertBtn.textContent = freePlay ? "Insert Coins (free play)" : "Insert 20 gp";
+  });
+
+  dmResetBtn.addEventListener("click", ()=>{
+    for (let i=0;i<4;i++) stopSpinning(i);
+    totalSpent = 0;
+    history = [];
+    renderHistory();
+    updateGpCounter();
+    resetMachine('<span class="flavor">The DM resets the machine. The coin slot waits, empty.</span>');
+  });
+
+  // initial state
+  leverHandle.classList.add("locked");
+  updateGpCounter();
+  renderHistory();
+
+})();
+</script>
+
+</body>
+</html>
